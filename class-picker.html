@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Подбор класса для цен и скидки — Tilda</title>
+  <style>
+    :root { --bg: #f5f5f5; --card: #fff; --border: #e0e0e0; --accent: #2563eb; --text: #1f2937; --muted: #6b7280; }
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 1.5rem; line-height: 1.5; }
+    h1 { font-size: 1.25rem; margin: 0 0 1rem; }
+    .card { background: var(--card); border-radius: 8px; padding: 1.25rem; margin-bottom: 1rem; border: 1px solid var(--border); }
+    label { display: block; font-weight: 500; margin-bottom: 0.35rem; font-size: 0.9rem; }
+    select, input[type="text"] { width: 100%; max-width: 280px; padding: 0.5rem 0.6rem; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem; }
+    .row { margin-bottom: 1rem; }
+    .row:last-child { margin-bottom: 0; }
+    .result { font-family: ui-monospace, monospace; background: #f0f4ff; padding: 0.6rem 0.8rem; border-radius: 6px; margin-top: 0.5rem; word-break: break-all; display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+    .result code { font-size: 1rem; flex: 1; min-width: 0; }
+    .result__copy { flex-shrink: 0; width: 2rem; height: 2rem; padding: 0; border: none; background: none; cursor: pointer; border-radius: 4px; color: var(--muted); display: flex; align-items: center; justify-content: center; }
+    .result__copy:hover { color: var(--accent); background: rgba(37, 99, 235, 0.1); }
+    .result__copy svg { width: 1.1rem; height: 1.1rem; }
+    button { margin-top: 0.5rem; padding: 0.5rem 1rem; background: var(--accent); color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem; }
+    button:hover { opacity: 0.9; }
+    .hint { font-size: 0.85rem; color: var(--muted); margin-top: 0.25rem; }
+    .layout { max-width: 400px; }
+    .product-card { background: linear-gradient(180deg, #fff 0%, #f8fafc 100%); border-radius: 12px; padding: 0; border: 1px solid var(--border); overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .product-card__header { background: var(--accent); color: #fff; padding: 1rem 1.25rem; }
+    .product-card__title { font-size: 1.1rem; font-weight: 700; margin: 0; letter-spacing: -0.02em; }
+    .product-card__subtitle { font-size: 0.8rem; opacity: 0.9; margin-top: 0.25rem; }
+    .product-card__body { padding: 1.25rem; }
+    .product-card__price-row { display: flex; align-items: baseline; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.5rem; }
+    .product-card__old-price { font-size: 0.9rem; color: var(--muted); text-decoration: line-through; }
+    .product-card__price { font-size: 1.75rem; font-weight: 700; color: var(--text); letter-spacing: -0.02em; }
+    .product-card__price-suffix { font-size: 0.95rem; font-weight: 500; color: var(--muted); }
+    .product-card__monthly { font-size: 0.9rem; color: var(--muted); margin-bottom: 0.75rem; }
+    .product-card__badge { display: inline-block; background: #dcfce7; color: #166534; font-size: 0.85rem; font-weight: 600; padding: 0.25rem 0.5rem; border-radius: 4px; margin-bottom: 1rem; }
+    .product-card__body { position: relative; }
+    .product-card__class-block { margin-top: 1.25rem; padding: 1.25rem; background: var(--card); border: 1px solid var(--border); border-radius: 8px; }
+    .product-card__class-label { display: block; font-weight: 500; margin-bottom: 0.35rem; font-size: 0.9rem; }
+    .product-card__tariff-input { width: 100%; padding: 0.5rem 0.6rem; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem; margin-bottom: 1rem; }
+    .banner-zone { padding: 0.5rem 0.5rem; margin: 0 -0.25rem 0.25rem; border-radius: 6px; cursor: pointer; border: 2px solid transparent; transition: border-color 0.15s, background 0.15s; }
+    .banner-zone:hover { background: rgba(37, 99, 235, 0.08); }
+    .banner-zone--selected { border-color: var(--accent); background: #f0f4ff; outline: none; }
+    .banner-zone__label { font-size: 0.75rem; color: var(--muted); display: block; margin-bottom: 0.15rem; }
+    .banner-zone__value { font-weight: 600; font-size: 1rem; }
+    .banner-zone.strikethrough .banner-zone__value { text-decoration: line-through; font-weight: 500; }
+    .banner-zone:last-child { margin-bottom: 0; }
+    .variant-popover { display: none; position: fixed; z-index: 100; background: var(--card); border-radius: 8px; border: 1px solid var(--border); box-shadow: 0 8px 24px rgba(0,0,0,0.15); min-width: 220px; max-width: 320px; max-height: 280px; overflow-y: auto; }
+    .variant-popover.is-open { display: block; }
+    .variant-popover__item { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; width: 100%; padding: 0.5rem 0.75rem; text-align: left; border: none; background: none; cursor: pointer; font-size: 0.9rem; color: var(--text); border-bottom: 1px solid var(--border); transition: background 0.1s; flex-wrap: wrap; }
+    .variant-popover__item:last-child { border-bottom: none; }
+    .variant-popover__item:hover { background: #f0f4ff; }
+    .variant-popover__item--selected { background: #e8eeff; font-weight: 600; }
+    .variant-popover__item-left { flex: 1; min-width: 0; }
+    .variant-popover__item-example { font-weight: 600; color: var(--accent); white-space: nowrap; }
+    .variant-popover__item-example--strikethrough { text-decoration: line-through; }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <div class="product-card">
+      <div class="product-card__header">
+        <h2 class="product-card__title">Курс «Продуктовый менеджер»</h2>
+        <div class="product-card__subtitle">Онлайн-обучение, 12 месяцев</div>
+      </div>
+      <div class="product-card__body">
+        <p class="hint" style="margin-bottom: 0.75rem;">Клик по блоку — выбрать вариант класса</p>
+        <div id="banner">
+          <div class="banner-zone strikethrough" data-zone="fullprice">
+            <span class="banner-zone__label">Полная цена</span>
+            <span class="banner-zone__value">150 000 руб</span>
+          </div>
+          <div class="product-card__price-row">
+            <div class="banner-zone" data-zone="price" style="flex: 1; min-width: 0;">
+              <span class="banner-zone__label">Цена со скидкой</span>
+              <span class="banner-zone__value product-card__price">99 000 <span class="product-card__price-suffix">руб</span></span>
+            </div>
+          </div>
+          <div class="banner-zone" data-zone="monthly">
+            <span class="banner-zone__label">Платёж в месяц со скидкой</span>
+            <span class="banner-zone__value">8 250 руб/мес</span>
+          </div>
+          <div class="banner-zone" data-zone="fullMonthly">
+            <span class="banner-zone__label">Платёж без скидки</span>
+            <span class="banner-zone__value">12 500 руб/мес</span>
+          </div>
+          <div class="banner-zone" data-zone="discount">
+            <span class="banner-zone__label">Скидка</span>
+            <span class="product-card__badge banner-zone__value">-60%</span>
+          </div>
+        </div>
+        <div class="product-card__class-block">
+          <label class="product-card__class-label" for="tariffInput">Тариф</label>
+          <input type="text" id="tariffInput" class="product-card__tariff-input" placeholder="default" value="" maxlength="30" autocomplete="off">
+          <label class="product-card__class-label">Класс для разметки</label>
+          <div class="result" id="output">
+            <code id="className">FullpriceLabel</code>
+            <button type="button" id="copyBtn" class="result__copy" title="Скопировать класс" aria-label="Скопировать класс">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="variantPopover" class="variant-popover" aria-hidden="true" role="listbox"></div>
+
+  <script>
+    (function () {
+      const output = document.getElementById('className');
+      const copyBtn = document.getElementById('copyBtn');
+      const tariffInput = document.getElementById('tariffInput');
+      const banner = document.getElementById('banner');
+      const variantPopover = document.getElementById('variantPopover');
+
+      var currentBaseName = 'FullpriceLabel';
+
+      function getPrefix() {
+        var raw = (tariffInput.value || '').trim().toLowerCase();
+        if (raw === '' || raw === 'default') return '';
+        return raw.replace(/[^a-z0-9_-]/g, '');
+      }
+
+      function getFullClassName() {
+        var prefix = getPrefix();
+        return prefix ? prefix + currentBaseName : currentBaseName;
+      }
+
+      var BANNER_ZONES = {
+        fullprice: [
+          { baseName: 'FullpriceLabel', label: 'Число + подпись (руб)', example: '150 000 руб' },
+          { baseName: 'FullpricePlain', label: 'Только число', example: '150 000' },
+          { baseName: 'FullpriceLabelStripped', label: 'С подписью, зачёркнуто', example: '150 000 руб' },
+          { baseName: 'FullpricePlainStripped', label: 'Только число, зачёркнуто', example: '150 000' }
+        ],
+        price: [
+          { baseName: 'PriceLabel', label: 'Число + подпись (руб)', example: '99 000 руб' },
+          { baseName: 'PricePlain', label: 'Только число', example: '99 000' }
+        ],
+        monthly: [
+          { baseName: 'MonthlyLabel', label: 'Число + подпись (руб/мес)', example: '8 250 руб/мес' },
+          { baseName: 'MonthlyPlain', label: 'Только число', example: '8 250' }
+        ],
+        fullMonthly: [
+          { baseName: 'FullMonthlyLabel', label: 'Число + подпись (руб/мес)', example: '12 500 руб/мес' },
+          { baseName: 'FullMonthlyPlain', label: 'Только число', example: '12 500' },
+          { baseName: 'FullMonthlyLabelStripped', label: 'С подписью, зачёркнуто', example: '12 500 руб/мес' },
+          { baseName: 'FullMonthlyPlainStripped', label: 'Только число, зачёркнуто', example: '12 500' }
+        ],
+        discount: [
+          { baseName: 'DiscountLabel', label: 'Подпись «-60%»', example: '-60%' },
+          { baseName: 'DiscountPercent', label: 'Только «60%»', example: '60%' }
+        ]
+      };
+
+      function getZoneForBase(baseName) {
+        for (var zone in BANNER_ZONES) {
+          if (BANNER_ZONES[zone].some(function (v) { return v.baseName === baseName; })) return zone;
+        }
+        return null;
+      }
+
+      function openVariantPopover(zoneEl, zoneId) {
+        var variants = BANNER_ZONES[zoneId];
+        if (!variants || !variants.length) return;
+        variantPopover.innerHTML = '';
+        variants.forEach(function (v) {
+          var btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'variant-popover__item';
+          btn.setAttribute('data-base', v.baseName);
+          btn.setAttribute('role', 'option');
+          var left = document.createElement('span');
+          left.className = 'variant-popover__item-left';
+          left.textContent = v.label;
+          var example = document.createElement('span');
+          example.className = 'variant-popover__item-example' + (v.baseName && v.baseName.indexOf('Stripped') !== -1 ? ' variant-popover__item-example--strikethrough' : '');
+          example.textContent = v.example || '';
+          btn.appendChild(left);
+          btn.appendChild(example);
+          variantPopover.appendChild(btn);
+        });
+        var rect = zoneEl.getBoundingClientRect();
+        variantPopover.style.left = rect.left + 'px';
+        variantPopover.style.top = (rect.bottom + 6) + 'px';
+        variantPopover.style.right = 'auto';
+        variantPopover.setAttribute('aria-hidden', 'false');
+        variantPopover.classList.add('is-open');
+      }
+
+      function closeVariantPopover() {
+        variantPopover.classList.remove('is-open');
+        variantPopover.setAttribute('aria-hidden', 'true');
+      }
+
+      function update() {
+        output.textContent = getFullClassName();
+
+        var zoneForBase = getZoneForBase(currentBaseName);
+        var zones = banner.querySelectorAll('.banner-zone');
+        zones.forEach(function (el) {
+          el.classList.toggle('banner-zone--selected', el.getAttribute('data-zone') === zoneForBase);
+        });
+        var popoverItems = variantPopover.querySelectorAll('.variant-popover__item');
+        popoverItems.forEach(function (el) {
+          el.classList.toggle('variant-popover__item--selected', el.getAttribute('data-base') === currentBaseName);
+        });
+      }
+
+      banner.addEventListener('click', function (e) {
+        var zone = e.target.closest('.banner-zone');
+        if (zone) {
+          e.stopPropagation();
+          var zoneId = zone.getAttribute('data-zone');
+          if (zoneId && BANNER_ZONES[zoneId]) openVariantPopover(zone, zoneId);
+        }
+      });
+
+      variantPopover.addEventListener('click', function (e) {
+        var option = e.target.closest('.variant-popover__item');
+        if (option) {
+          e.stopPropagation();
+          var baseName = option.getAttribute('data-base');
+          if (baseName && BANNER_ZONES[getZoneForBase(baseName)]) {
+            currentBaseName = baseName;
+            update();
+            closeVariantPopover();
+          }
+        }
+      });
+
+      document.addEventListener('click', function (e) {
+        if (!variantPopover.contains(e.target) && !banner.contains(e.target)) closeVariantPopover();
+      });
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') closeVariantPopover();
+      });
+
+      tariffInput.addEventListener('input', update);
+      tariffInput.addEventListener('change', update);
+
+      copyBtn.addEventListener('click', function () {
+        navigator.clipboard.writeText(getFullClassName()).then(function () {
+          var svg = copyBtn.querySelector('svg');
+          var oldTitle = copyBtn.getAttribute('title');
+          copyBtn.setAttribute('title', 'Скопировано');
+          copyBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+          setTimeout(function () {
+            copyBtn.setAttribute('title', oldTitle);
+            copyBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>';
+          }, 1500);
+        });
+      });
+
+      update();
+    })();
+  </script>
+</body>
+</html>
