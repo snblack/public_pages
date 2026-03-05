@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Подбор класса для автоматизации цен и скидки — Tilda</title>
+  <title>Подбор класса для цен и скидки — Tilda</title>
   <style>
     :root { --bg: #f5f5f5; --card: #fff; --border: #e0e0e0; --accent: #2563eb; --text: #1f2937; --muted: #6b7280; }
     * { box-sizing: border-box; }
@@ -19,6 +19,7 @@
     .result__copy { flex-shrink: 0; width: 2rem; height: 2rem; padding: 0; border: none; background: none; cursor: pointer; border-radius: 4px; color: var(--muted); display: flex; align-items: center; justify-content: center; }
     .result__copy:hover { color: var(--accent); background: rgba(37, 99, 235, 0.1); }
     .result__copy svg { width: 1.1rem; height: 1.1rem; }
+    .result__copy-source { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
     button { margin-top: 0.5rem; padding: 0.5rem 1rem; background: var(--accent); color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem; }
     button:hover { opacity: 0.9; }
     .hint { font-size: 0.85rem; color: var(--muted); margin-top: 0.25rem; }
@@ -94,6 +95,7 @@
           <input type="text" id="tariffInput" class="product-card__tariff-input" placeholder="default" value="" maxlength="30" autocomplete="off">
           <label class="product-card__class-label">Класс для разметки</label>
           <div class="result" id="output">
+            <input type="text" id="copySource" class="result__copy-source" readonly tabindex="-1" aria-hidden="true">
             <code id="className">FullpriceLabel</code>
             <button type="button" id="copyBtn" class="result__copy" title="Скопировать класс" aria-label="Скопировать класс">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
@@ -109,6 +111,7 @@
   <script>
     (function () {
       const output = document.getElementById('className');
+      const copySource = document.getElementById('copySource');
       const copyBtn = document.getElementById('copyBtn');
       const tariffInput = document.getElementById('tariffInput');
       const banner = document.getElementById('banner');
@@ -195,7 +198,9 @@
       }
 
       function update() {
-        output.textContent = getFullClassName();
+        var full = getFullClassName();
+        output.textContent = full;
+        copySource.value = full;
 
         var zoneForBase = getZoneForBase(currentBaseName);
         var zones = banner.querySelectorAll('.banner-zone');
@@ -240,17 +245,30 @@
       tariffInput.addEventListener('input', update);
       tariffInput.addEventListener('change', update);
 
+      function showCopyFeedback() {
+        var oldTitle = copyBtn.getAttribute('title');
+        copyBtn.setAttribute('title', 'Скопировано');
+        copyBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+        setTimeout(function () {
+          copyBtn.setAttribute('title', oldTitle);
+          copyBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>';
+        }, 1500);
+      }
+
       copyBtn.addEventListener('click', function () {
-        navigator.clipboard.writeText(getFullClassName()).then(function () {
-          var svg = copyBtn.querySelector('svg');
-          var oldTitle = copyBtn.getAttribute('title');
-          copyBtn.setAttribute('title', 'Скопировано');
-          copyBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
-          setTimeout(function () {
-            copyBtn.setAttribute('title', oldTitle);
-            copyBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>';
-          }, 1500);
-        });
+        var text = getFullClassName();
+        copySource.value = text;
+        copySource.select();
+        var execOk = document.execCommand('copy');
+        if (execOk) {
+          showCopyFeedback();
+          return;
+        }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(showCopyFeedback).catch(function () { showCopyFeedback(); });
+        } else {
+          showCopyFeedback();
+        }
       });
 
       update();
