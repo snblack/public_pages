@@ -89,6 +89,10 @@
             <span class="banner-zone__label">Скидка</span>
             <span class="product-card__badge banner-zone__value">-60%</span>
           </div>
+          <div class="banner-zone" data-zone="installment">
+            <span class="banner-zone__label">Период рассрочки</span>
+            <span class="banner-zone__value">12 месяцев</span>
+          </div>
         </div>
         <div class="product-card__class-block">
           <label class="product-card__class-label" for="tariffInput">Тариф</label>
@@ -154,6 +158,10 @@
         discount: [
           { baseName: 'DiscountLabel', label: 'Подпись «-60%»', example: '-60%' },
           { baseName: 'DiscountPercent', label: 'Только «60%»', example: '60%' }
+        ],
+        installment: [
+          { baseName: 'InstallmentPeriodLabel', label: 'Число + «месяцев»', example: '12 месяцев' },
+          { baseName: 'InstallmentPeriodPlain', label: 'Только число', example: '12' }
         ]
       };
 
